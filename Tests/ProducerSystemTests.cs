@@ -116,7 +116,7 @@ namespace Tests
                 {
                     Reference = "producer",
                     Stream = "TEST",
-                    BatchSize = 50_0000,
+                    BatchSize = -1,
                 }));
 
             await system.Close();
