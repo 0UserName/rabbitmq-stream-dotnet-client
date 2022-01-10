@@ -85,10 +85,10 @@ namespace RabbitMQ.Stream.Client
                 throw new CreateProducerException($"Stream name can't be empty");
             }
 
-            if (producerConfig.BatchSize is < Consts.MinBatchSize)
+            if (producerConfig.BatchSize < Consts.MinBatchSize)
             {
                 throw new CreateProducerException(
-                    $"Batch Size must be bigger than {Consts.MinBatchSize}");
+                    $"Batch Size must be bigger than 0");
             }
 
             var meta = await client.QueryMetadata(new[] {producerConfig.Stream});
