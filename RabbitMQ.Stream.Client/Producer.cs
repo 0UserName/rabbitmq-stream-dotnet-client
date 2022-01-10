@@ -24,6 +24,8 @@ namespace RabbitMQ.Stream.Client
         public Action<Confirmation> ConfirmHandler { get; set; } = _ => { };
 
         public Func<string, Task> ConnectionClosedHandler { get; set; }
+
+        public int BatchSize { get; set; } = 100;
     }
 
     public class Producer : AbstractEntity, IDisposable
@@ -127,14 +129,13 @@ namespace RabbitMQ.Stream.Client
 
         private async Task ProcessBuffer()
         {
-            // TODO: make the batch size configurable.
-            var messages = new List<(ulong, Message)>(100);
+            var messages = new List<(ulong, Message)>(this.config.BatchSize);
             while (await messageBuffer.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
                 while (messageBuffer.Reader.TryRead(out OutgoingMsg msg))
                 {
                     messages.Add((msg.PublishingId, msg.Data));
-                    if (messages.Count == 100)
+                    if (messages.Count == this.config.BatchSize)
                     {
                         await SendMessages(messages).ConfigureAwait(false);
                     }
@@ -176,7 +177,7 @@ namespace RabbitMQ.Stream.Client
             StreamInfo metaStreamInfo)
         {
             var client = await RoutingHelper<Routing>.LookupLeaderConnection(clientParameters, metaStreamInfo);
-            var producer = new Producer((Client)client, config);
+            var producer = new Producer((Client) client, config);
             await producer.Init();
             return producer;
         }

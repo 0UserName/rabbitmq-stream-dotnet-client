@@ -48,8 +48,8 @@ namespace Tests
 
 
             new Utils<bool>(testOutputHelper).WaitUntilTaskCompletes(testPassed);
-            
-            
+
+
             Assert.True(testPassed.Task.Result);
             producer.Dispose();
             await system.DeleteStream(stream);
@@ -91,11 +91,36 @@ namespace Tests
 
             Assert.Equal(ResponseCode.Ok, await producer.Close());
             Assert.Equal(ResponseCode.Ok, await producer.Close());
-            producer.Dispose();    
+            producer.Dispose();
             await system.DeleteStream(stream);
             await system.Close();
         }
-        
+
+
+        [Fact]
+        [WaitTestBeforeAfter]
+        public async Task ProducerShouldRaiseAnExceptionIfStreamOrBatchSizeAreNotValid()
+        {
+            var config = new StreamSystemConfig();
+            var system = await StreamSystem.Create(config);
+
+            await Assert.ThrowsAsync<CreateProducerException>(() => system.CreateProducer(
+                new ProducerConfig
+                {
+                    Reference = "producer",
+                    Stream = "",
+                }));
+            
+            await Assert.ThrowsAsync<CreateProducerException>(() => system.CreateProducer(
+                new ProducerConfig
+                {
+                    Reference = "producer",
+                    Stream = "TEST",
+                    BatchSize = 50_0000,
+                }));
+
+            await system.Close();
+        }
         
         [Fact]
         [WaitTestBeforeAfter]
@@ -118,11 +143,11 @@ namespace Tests
                         await Task.CompletedTask;
                     }
                 });
-        
-            
+
+
             Assert.Equal(ResponseCode.Ok, await producer.Close());
             new Utils<bool>(testOutputHelper).WaitUntilTaskCompletes(testPassed);
-            await system.DeleteStream(stream); 
+            await system.DeleteStream(stream);
             await system.Close();
         }
     }

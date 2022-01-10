@@ -79,12 +79,25 @@ namespace RabbitMQ.Stream.Client
 
         public async Task<Producer> CreateProducer(ProducerConfig producerConfig)
         {
+            // Validate the ProducerConfig values
+            if (producerConfig.Stream == "")
+            {
+                throw new CreateProducerException($"Stream name can't be empty");
+            }
+
+            if (producerConfig.BatchSize is < Consts.MinBatchSize or > Consts.MaxBatchSize)
+            {
+                throw new CreateProducerException(
+                    $"Batch Size must be between {Consts.MinBatchSize} and {Consts.MaxBatchSize}");
+            }
+
             var meta = await client.QueryMetadata(new[] {producerConfig.Stream});
             var metaStreamInfo = meta.StreamInfos[producerConfig.Stream];
             if (metaStreamInfo.ResponseCode != ResponseCode.Ok)
             {
                 throw new CreateProducerException($"producer could not be created code: {metaStreamInfo.ResponseCode}");
             }
+
             return await Producer.Create(clientParameters, producerConfig, metaStreamInfo);
         }
 
@@ -121,6 +134,7 @@ namespace RabbitMQ.Stream.Client
             {
                 throw new CreateConsumerException($"consumer could not be created code: {metaStreamInfo.ResponseCode}");
             }
+
             return await Consumer.Create(clientParameters, consumerConfig, metaStreamInfo);
         }
     }
