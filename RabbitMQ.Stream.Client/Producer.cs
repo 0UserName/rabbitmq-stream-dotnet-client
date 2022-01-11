@@ -25,7 +25,13 @@ namespace RabbitMQ.Stream.Client
 
         public Func<string, Task> ConnectionClosedHandler { get; set; }
 
-        public int BatchSize { get; set; } = 100;
+        /// <summary>
+        /// Number of the messages sent for each frame-send.
+        /// High values can increase the throughput.
+        /// Low values can reduce the messages latency.
+        /// Default value is 100.
+        /// </summary>
+        public int MessagesBufferSize { get; set; } = 100;
     }
 
     public class Producer : AbstractEntity, IDisposable
@@ -129,13 +135,13 @@ namespace RabbitMQ.Stream.Client
 
         private async Task ProcessBuffer()
         {
-            var messages = new List<(ulong, Message)>(this.config.BatchSize);
+            var messages = new List<(ulong, Message)>(this.config.MessagesBufferSize);
             while (await messageBuffer.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
                 while (messageBuffer.Reader.TryRead(out OutgoingMsg msg))
                 {
                     messages.Add((msg.PublishingId, msg.Data));
-                    if (messages.Count == this.config.BatchSize)
+                    if (messages.Count == this.config.MessagesBufferSize)
                     {
                         await SendMessages(messages).ConfigureAwait(false);
                     }
@@ -145,6 +151,7 @@ namespace RabbitMQ.Stream.Client
                 {
                     await SendMessages(messages).ConfigureAwait(false);
                 }
+
             }
 
             async Task SendMessages(List<(ulong, Message)> messages)
